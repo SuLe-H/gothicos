@@ -41,10 +41,15 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #7f1d1d; 
       }
+      .error-message {
+        color: var(--color-gothic-red);
+        text-align: center;
+        margin-top: 1rem;
+        font-family: 'Cinzel', serif;
+      }
     </style>
 
-
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react/": "https://esm.sh/react@^19.2.3/",
@@ -53,15 +58,90 @@
     "@google/genai": "https://esm.sh/@google/genai@^1.37.0"
   }
 }
-</script>
-  <script type="module" crossorigin src="/assets/index-09S6psD3.js"></script>
-</head>
+    </script>
+    <!-- 修复：绝对路径改为相对路径，适配gothicos子目录 -->
+    <script type="module" crossorigin src="./assets/index-09S6psD3.js"></script>
+  </head>
   <body>
     <div id="root">
-        <div style="color: #c5a059; text-align: center; margin-top: 20vh; font-family: 'Cinzel', serif;">
-            <h1 class="animate-pulse">Loading Grimoire...</h1>
-        </div>
+      <div style="color: #c5a059; text-align: center; margin-top: 20vh; font-family: 'Cinzel', serif;">
+        <h1 class="animate-pulse">Loading Grimoire...</h1>
+        <!-- 加载失败提示（默认隐藏） -->
+        <div id="load-error" class="error-message hidden">加载失败，请刷新或检查网络</div>
+      </div>
     </div>
-    <!-- CRITICAL FIX: The script tag below starts the React application -->
+
+    <!-- 容错处理：5秒未加载成功显示错误 -->
+    <script>
+      window.reactLoaded = false;
+      setTimeout(() => {
+        if (!window.reactLoaded) {
+          document.getElementById('load-error').classList.remove('hidden');
+          document.querySelector('.animate-pulse').classList.remove('animate-pulse');
+          console.error('React应用加载超时（gothicos部署）');
+        }
+      }, 5000);
+    </script>
+
+    <!-- 兼容React渲染完成标记 -->
+    <script type="module">
+      // 监听React加载状态，避免误判
+      import React from 'react';
+      import ReactDOM from 'react-dom/client';
+      console.log('=== gothicos部署 - 初始化日志 ===');
+      console.log('1. 依赖包开始加载');
+      
+      // 标记React已加载
+      window.reactLoaded = true;
+      console.log('2. React核心包加载完成');
+
+      // 安全初始化Google GenAI
+      let genAI = null;
+      try {
+        const { GoogleGenerativeAI } = await import('@google/genai');
+        console.log('3. @google/genai加载完成');
+        
+        // 替换为你的API Key（建议通过环境变量配置，此处仅演示）
+        const apiKey = window.GOOGLE_API_KEY || "";
+        if (apiKey) {
+          genAI = new GoogleGenerativeAI(apiKey);
+          console.log('4. Google GenAI初始化成功');
+        } else {
+          console.warn('4. 未配置Google API Key，AI功能不可用');
+        }
+      } catch (e) {
+        console.error('4. Google GenAI初始化失败:', e.message);
+        // 不阻断应用渲染
+      }
+
+      // 渲染应用
+      try {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+          <React.StrictMode>
+            <div style={{ 
+              minHeight: '100vh', 
+              backgroundColor: '#050505',
+              color: '#d4d4d4',
+              padding: '2rem'
+            }}>
+              <h1 className="font-header text-[#c5a059] text-center mb-6">Gothic AI Grimoire</h1>
+              <div className="font-display max-w-3xl mx-auto text-center">
+                {genAI ? (
+                  <p>🔮 AI 魔法书已就绪（gothicos部署）</p>
+                ) : (
+                  <p className="text-[#7f1d1d]"⚠️ AI 初始化失败，请检查API Key</p>
+                )}
+              </div>
+            </div>
+          </React.StrictMode>
+        );
+        console.log('5. React应用渲染成功');
+      } catch (e) {
+        console.error('5. React应用渲染失败:', e);
+        // 显示错误提示
+        document.getElementById('load-error').classList.remove('hidden');
+      }
+    </script>
   </body>
 </html>
